@@ -103,16 +103,11 @@ function getRandomArbitrary(min, max) {
     }
   }
 
-  function calY3(a, x, dentaX_left, dentaX_right, x0, m) {
+  function calY3(a, b, x, dentaX_left, dentaX_right, x0, m) {
     if(x<=x0) {
       return Math.pow(a, dentaX_left);
     } else {
-      console.log('this is x and x0');
-      console.log(x);
-      console.log(x0);
-      console.log(m);
-      console.log(dentaX_right);
-      return Math.pow(a, (dentaX_right));
+      return Math.pow(b, (dentaX_right));
     }
   }
 
@@ -163,8 +158,12 @@ function getRandomArbitrary(min, max) {
     console.log(y0);
 
     var a0 = calA(dentaX_left, y0);
+    var b0 = calA(dentaX_right, y0);
+
     console.log('this is a number');
     console.log(a0);
+    console.log('this is b number');
+    console.log(b0);
 
     //var ms = calMs(y0s, a0s, x0);
     var ms = dentaX_left;
@@ -186,7 +185,7 @@ function getRandomArbitrary(min, max) {
         } else {
           data.y[t] = Math.round(data.y[t] / peak.giam_nho + calY3(a0, data.x[t], data.x[t] - minX, maxX - data.x[t], x0, ms) + getRandomArbitrary(- peak.giat_nhe_duoi, peak.giat_nhe_tren));
         }*/
-        data.y[t] = parseInt(data.y[t]) + Math.round(calY3(a0, data.x[t], data.x[t] - minX, maxX - data.x[t], x0, ms));
+        data.y[t] = parseInt(data.y[t]) + Math.round(calY3(a0, b0, data.x[t], data.x[t] - minX, maxX - data.x[t], x0, ms));
       }
     }
     console.log('this is add pick');

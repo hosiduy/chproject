@@ -20,6 +20,9 @@ module.exports = function (app) {
 
   app.route('/api/mproject/parsefile/:type')
     .get(articles.modifyData);
+
+  app.route('/api/mproject/createpeaks')
+    .post(articles.createPeaks);
   // Finish by binding the article middleware
   app.param('articleId', articles.articleByID);
 };

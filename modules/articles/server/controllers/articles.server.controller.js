@@ -50,6 +50,10 @@ function getRandomArbitrary(min, max) {
     return [data.y1[t], data.y2[t], data.y3[t], data.y4[t], data.y5[t], data.y6[t]];
   }
 
+  function getOneYbyT(data, t) {
+    return data.y[t];
+  }
+
   function getY0s(ys, dentaYs) {
     var y0s = [0,0,0,0,0,0];
     for (var t = 0; t<ys.length; ++t) {
@@ -57,6 +61,11 @@ function getRandomArbitrary(min, max) {
     }
     return y0s;
   }
+
+  function getY0(y, dentaY) {
+    return (parseInt(y) + dentaY);
+  }
+
   function getRealX(data, limit) {
     for(var t = 0; t < data.x.length; ++t) {
       if(data.x[t] > limit) {
@@ -66,7 +75,6 @@ function getRandomArbitrary(min, max) {
   }
 
   function getT(data, x) {
-
     for(var t = 0; t<data.x.length; ++t) {
       if(data.x[t] == x) {
         return t;
@@ -78,14 +86,13 @@ function getRandomArbitrary(min, max) {
   function calAs(x0, y0s) {
     var a0s = [0,0,0,0,0,0];
       for(var t = 0; t<y0s.length; ++t) {
-        console.log('this is where is cal a');
-        console.log('this is y');
-        console.log(y0s[t]);
-        console.log('this is 1/x');
-        console.log(1 / x0);
         a0s[t] = Math.pow(y0s[t], (1/x0));
       }
       return a0s;
+  }
+
+  function calA(dentaX, y0) {
+    return Math.pow(y0, (1/dentaX));
   }
 
   function calY2(a, x, x0, m) {
@@ -93,6 +100,19 @@ function getRandomArbitrary(min, max) {
       return Math.pow(a, x);
     } else {
       return Math.pow(a, (m-x));
+    }
+  }
+
+  function calY3(a, x, dentaX_left, dentaX_right, x0, m) {
+    if(x<=x0) {
+      return Math.pow(a, dentaX_left);
+    } else {
+      console.log('this is x and x0');
+      console.log(x);
+      console.log(x0);
+      console.log(m);
+      console.log(dentaX_right);
+      return Math.pow(a, (dentaX_right));
     }
   }
 
@@ -106,7 +126,72 @@ function getRandomArbitrary(min, max) {
     });
   }
 
+  function writeOneToFile(data, fileName) {
+    var stemp = '';
+    for (var t = 0; t < data.x.length; ++t) {
+      stemp += data.x[t] + '\t' + data.y[t] + '\n';
+    }
+    writeFile('assets/'+fileName, stemp, function (err) {
+      if (err) console.log(err);
+    });
+  }
 
+  function createPeak(data, peak) {
+    //init vars
+    var minX = peak.minX;
+    var maxX = peak.maxX;
+    var x0 = peak.x0;
+
+    var dentaX_left = x0 - minX;
+    var dentaX_right = maxX - x0;
+
+
+    var dentaY = peak.dentaY;
+
+    var t0 = getT(data, x0);
+    console.log('this is t0 ');
+    console.log(t0);
+
+    /*var y = getOneYbyT(data, t0);
+    console.log('this is y');
+    console.log(y);*/
+
+    //var y0 = getY0(y, dentaY);
+    var y0 = dentaY;
+
+    console.log('this is y0 after cal');
+    console.log(y0);
+
+    var a0 = calA(dentaX_left, y0);
+    console.log('this is a number');
+    console.log(a0);
+
+    //var ms = calMs(y0s, a0s, x0);
+    var ms = dentaX_left;
+    console.log('this is ms');
+    console.log(ms);
+
+    console.log('this is param data');
+    console.log(peak.lech_phai);
+    console.log(peak.lech_trai);
+    console.log(peak.giam_lon);
+    console.log(peak.giam_nho);
+    console.log(peak.giat_manh_duoi);
+
+// x0, dentaY, minX, maxX, lech_trai, lech_phai, giam_lon, giam_nho, giat_manh_tren, giat_manh_duoi, giat_nhe_tren, giat_nhe_duoi,
+    for(var t = 0; t<data.x.length; t++) {
+      if(data.x[t]>minX && data.x[t]<maxX) {/*
+        if (data.x[t] < x0 - peak.lech_trai || data.x[t] > x0 + peak.lech_phai) {
+          data.y[t] = Math.round(data.y[t] / peak.giam_lon + calY3(a0, data.x[t], data.x[t] - minX, maxX - data.x[t], x0, ms) + getRandomArbitrary(- peak.giat_manh_duoi, peak.giat_manh_tren));
+        } else {
+          data.y[t] = Math.round(data.y[t] / peak.giam_nho + calY3(a0, data.x[t], data.x[t] - minX, maxX - data.x[t], x0, ms) + getRandomArbitrary(- peak.giat_nhe_duoi, peak.giat_nhe_tren));
+        }*/
+        data.y[t] = parseInt(data.y[t]) + Math.round(calY3(a0, data.x[t], data.x[t] - minX, maxX - data.x[t], x0, ms));
+      }
+    }
+    console.log('this is add pick');
+    return data;
+  }
 
 exports.modifyData = function (req, res) {
 var data = {
@@ -178,7 +263,8 @@ var data = {
               }
             }
           }
-        } else if(type == 'peak') {
+        }
+        else if(type == 'peak') {
           //init vars
           var minX = 14;
           var maxX = 14.6;
@@ -238,6 +324,73 @@ var data = {
         //console.log(data);
         res.send(data);
       });  
+
+};
+
+/*
+* Add peaks
+*/
+exports.createPeaks = function(req, res) {
+  /*
+  * CODE PLAN
+  * What we have:
+  * file in, out name, peaks content.
+  * each peak include:
+  * x0, dentaY, minX, maxX, lech_trai, lech_phai, giat_manh_tren, giat_manh_duoi, giat_nhe_tren, giat_nhe_duoi, giam_lon, giam_nho
+  * Output:
+  * file out name with peaks
+  *
+  * PLAN
+  * 1. get params from req.body
+  * 2. read file in
+  * 3. parse file in
+  * 4. get data after parse
+  * 5. call create pick function
+  * 6. write to file
+  * 7. send data
+  */
+
+  // get params from body
+  var body = req.body;
+  var peaks = body.peaks;
+  var temp = [];
+  var count = 0;
+  var data = {
+    x: [],
+    y: []
+  };
+
+  var lr = new LineByLineReader('assets/'+body.file_in);
+
+  lr.on('error', function (err) {
+    // 'err' contains error object
+    console.log('err on read file');
+    console.log(err);
+  });
+
+  lr.on('line', function (line) {
+    // 'line' contains the current line without the trailing newline character.
+    //console.log('file line');
+    if (count > 0) {
+      temp = line.split("\t");
+      //console.log(temp);
+      data.x.push(temp[0]);
+      data.y.push(temp[1]);
+    }
+    count++;
+  });
+
+  lr.on('end', function() {
+    // loop through all peak
+    for(var m=0; m<peaks.length; ++m) {
+     data = createPeak(data, peaks[m]);
+    }
+
+    writeOneToFile(data, body.file_out);
+
+    res.send({message: 'done'});
+  });
+
 
 };
 /**

@@ -23,6 +23,8 @@ module.exports = function (app) {
 
   app.route('/api/mproject/createpeaks')
     .post(articles.createPeaks);
+  app.route('/api/mproject/createPeaks2')
+    .post(articles.createPeaks2);
   // Finish by binding the article middleware
   app.param('articleId', articles.articleByID);
 };

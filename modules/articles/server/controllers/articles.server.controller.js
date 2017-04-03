@@ -83,6 +83,20 @@ function getT(data, x) {
   return null;
 }
 
+function getRealX(data, x) {
+  for(var i = 0; i<data.x.length; ++i) {
+    if(i+1 < data.x.length) {
+      if(data.x[i] <= x && data.x[i+1] >= x) {
+        if(data.x[i] - x < data.x[i+1] - x) {
+          return data.x[i];
+        } else {
+          return data.x[i+1];
+        }
+      }
+    }
+  }
+}
+
 function calAs(x0, y0s) {
   var a0s = [0, 0, 0, 0, 0, 0];
   for (var t = 0; t < y0s.length; ++t) {
@@ -424,6 +438,12 @@ function createPeak2(data, peak) {
    *   c. x0 -> x0right
    *   d. x0right -> b0
    *   */
+  peak.x0 = parseFloat(getRealX(data, peak.x0));
+  peak.left.x0 = parseFloat(getRealX(data, peak.left.x0));
+  peak.right.x0 = parseFloat(getRealX(data, peak.right.x0));
+
+  console.log('this is peak after modify');
+  console.log(peak);
   peak.y0Index = getT(data, peak.x0);
   var fnLeftVars = getExpVars(peak.left.x0 - peak.minX, peak.left.y0);
   var fnRightVars = getExpVars(peak.maxX - peak.right.x0, peak.right.y0);
@@ -431,7 +451,7 @@ function createPeak2(data, peak) {
 
   for(var i = 0; i<data.x.length; ++i) {
     if (data.x[i] > peak.minX && data.x[i] < peak.maxX) {
-      
+
       data.y[i] = parseInt(data.y[i]) +
         Math.round(calYFinal(peak.minX, peak.maxX, fnLeftVars, fnMidVars, fnRightVars, data.x[i], peak.left.x0, peak.x0, peak.right.x0));
     }

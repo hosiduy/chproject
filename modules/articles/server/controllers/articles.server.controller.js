@@ -540,16 +540,7 @@ function getYValue(start, end, current_index, rand) {
   var a = (start.y - end.y)/(start.x - end.x);
   var b = start.y - a*start.x;
 
- /* if(cal_y < 0) {
-    console.log('this y is < 0');
-    console.log(start);
-    console.log(end);
-    console.log(current_index);
-    console.log(cal_y);
-    console.log(a);
-    console.log(b);
-  }
-  if(cal_y > 2000) {
+  /*if(cal_y > 2000) {
     console.log('this y is > 2000');
     console.log(start);
     console.log(end);
@@ -559,7 +550,14 @@ function getYValue(start, end, current_index, rand) {
     console.log(b);
   }*/
   var rand_y = getRandY(cal_y, rand);
-
+  console.log('this y is < 0');
+  console.log(start);
+  console.log(end);
+  console.log(current_index);
+  console.log(cal_y);
+  console.log(rand_y);
+  console.log(a);
+  console.log(b);
   return rand_y;
 }
 
@@ -636,9 +634,10 @@ exports.createBackground = function(req, res) {
     var start = line.start;
     var end = line.end;
 
+    var anchor = start.x;
     for(var m = start.x; m<= end.x; m+=step) {
       m = round(m, precision);
-      var index = Math.round(m/step);
+      var index = Math.round(m/step) - Math.round(anchor/step);
       data.x[index] = m;
       data.y[index] = getYValue(start, end, m, line.rand);
     }

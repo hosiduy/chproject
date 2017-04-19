@@ -583,10 +583,13 @@ exports.createBackground = function(req, res) {
         }
       }
     ],
+    "step": 0.1,
     "file_out": "background01.txt"
   };*/
   var body = req.body;
   var lines = body.lines;
+  var step = body.step;
+
   var data = {
     x: [],
     y: []
@@ -597,9 +600,10 @@ exports.createBackground = function(req, res) {
     var start = line.start;
     var end = line.end;
 
-    for(var m = start.x; m<= end.x; ++m) {
-      data.x[m] = m;
-      data.y[m] = getYValue(start, end, m, line.rand);
+    for(var m = start.x; m<= end.x; m+=step) {
+      var index = Math.round(m/step);
+      data.x[index] = m;
+      data.y[index] = getYValue(start, end, index, line.rand);
     }
 
   }

@@ -25,6 +25,10 @@ module.exports = function (app) {
     .post(articles.createPeaks);
   app.route('/api/mproject/createPeaks2')
     .post(articles.createPeaks2);
+
+  app.route('/api/mproject/createBackground')
+    .post(articles.createBackground);
+
   // Finish by binding the article middleware
   app.param('articleId', articles.articleByID);
 };

@@ -513,6 +513,103 @@ exports.createPeaks2 = function (req, res) {
     res.send({message: 'done'});
   })
 };
+
+/*
+* Draw background
+* */
+function getRandY(y, rand) {
+  var min = Math.ceil(rand.min);
+  var max = Math.floor(rand.max);
+  return y + Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function getCalY(start, end, index) {
+  var a = (start.y - end.y)/(start.x - end.x);
+  var b = start.y - a*start.x;
+
+  return Math.round(a*index + b);
+}
+
+function getYValue(start, end, current_index, rand) {
+  var cal_y = getCalY(start, end, current_index);
+  var rand_y = getRandY(cal_y, rand);
+
+  return rand_y;
+}
+
+exports.createBackground = function(req, res) {
+  /*var test = {
+    "lines": [
+      {
+        "start": {
+          "x": 0,
+          "y": 100
+        },
+        "end": {
+          "x": 30,
+          "y": 300
+        },
+        "rand": {
+          "min": -5,
+          "max": 10
+        }
+      },
+      {
+        "start": {
+          "x": 31,
+          "y": 400
+        },
+        "end": {
+          "x": 80,
+          "y": 800
+        },
+        "rand": {
+          "min": -5,
+          "max": 10
+        }
+      },
+      {
+        "start": {
+          "x": 81,
+          "y": 200
+        },
+        "end": {
+          "x": 120,
+          "y": 200
+        },
+        "rand": {
+          "min": -5,
+          "max": 10
+        }
+      }
+    ],
+    "file_out": "background01.txt"
+  };*/
+  var body = req.body;
+  var lines = body.lines;
+  var data = {
+    x: [],
+    y: []
+  };
+
+  for(var i = 0; i<lines.length; ++i) {
+    var line = lines[i];
+    var start = line.start;
+    var end = line.end;
+
+    for(var m = start.x; m<= end.x; ++m) {
+      data.x[m] = m;
+      data.y[m] = getYValue(start, end, m, line.rand);
+    }
+
+  }
+
+  writeOneToFile(data, body.file_out);
+
+  res.send({message: 'done'});
+};
+
+
 /**
  * Show the current article
  */

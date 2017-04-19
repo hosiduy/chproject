@@ -517,6 +517,11 @@ exports.createPeaks2 = function (req, res) {
 /*
 * Draw background
 * */
+function round(value, precision) {
+  var multiplier = Math.pow(10, precision || 0);
+  return Math.round(value * multiplier) / multiplier;
+}
+
 function getRandY(y, rand) {
   var min = Math.ceil(rand.min);
   var max = Math.floor(rand.max);
@@ -535,6 +540,16 @@ function getYValue(start, end, current_index, rand) {
   var rand_y = getRandY(cal_y, rand);
 
   return rand_y;
+}
+
+function getPrecision(step) {
+  var check = 0;
+  var temp = 0;
+  while(temp < 1) {
+    check +=1;
+    temp = step * Math.pow(10, check);
+  }
+  return temp;
 }
 
 exports.createBackground = function(req, res) {
@@ -589,7 +604,7 @@ exports.createBackground = function(req, res) {
   var body = req.body;
   var lines = body.lines;
   var step = body.step;
-
+  var precision = getPrecision(step);
   var data = {
     x: [],
     y: []
@@ -601,6 +616,7 @@ exports.createBackground = function(req, res) {
     var end = line.end;
 
     for(var m = start.x; m<= end.x; m+=step) {
+      m = round(m, precision);
       var index = Math.round(m/step);
       data.x[index] = m;
       data.y[index] = getYValue(start, end, index, line.rand);

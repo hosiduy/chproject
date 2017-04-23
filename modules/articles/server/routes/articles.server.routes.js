@@ -29,6 +29,11 @@ module.exports = function (app) {
   app.route('/api/mproject/createBackground')
     .post(articles.createBackground);
 
+  app.route('/api/mproject/getRandBackground')
+    .post(articles.getRandBackground);
+
+  app.route('/api/mproject/addRandomToData')
+    .post(articles.addRandomToData);
   // Finish by binding the article middleware
   app.param('articleId', articles.articleByID);
 };

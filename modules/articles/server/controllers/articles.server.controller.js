@@ -452,6 +452,8 @@ function createPeak2(data, peak) {
   for(var i = 0; i<data.x.length; ++i) {
     if (data.x[i] > peak.minX && data.x[i] < peak.maxX) {
 
+      console.log('this is y i');
+      console.log(data.y[i]);
       data.y[i] = parseInt(data.y[i]) +
         Math.round(calYFinal(peak.minX, peak.maxX, fnLeftVars, fnMidVars, fnRightVars, data.x[i], peak.left.x0, peak.x0, peak.right.x0));
     }
@@ -517,6 +519,7 @@ exports.createPeaks2 = function (req, res) {
 /*
 * Draw background
 * */
+
 function round(value, precision) {
   var multiplier = Math.pow(10, precision || 0);
   return Math.round(value * multiplier) / multiplier;
@@ -537,27 +540,7 @@ function getCalY(start, end, index) {
 
 function getYValue(start, end, current_index, rand) {
   var cal_y = getCalY(start, end, current_index);
-  var a = (start.y - end.y)/(start.x - end.x);
-  var b = start.y - a*start.x;
-
-  /*if(cal_y > 2000) {
-    console.log('this y is > 2000');
-    console.log(start);
-    console.log(end);
-    console.log(current_index);
-    console.log(cal_y);
-    console.log(a);
-    console.log(b);
-  }*/
   var rand_y = getRandY(cal_y, rand);
-  console.log('this y is < 0');
-  console.log(start);
-  console.log(end);
-  console.log(current_index);
-  console.log(cal_y);
-  console.log(rand_y);
-  console.log(a);
-  console.log(b);
   return rand_y;
 }
 
@@ -649,7 +632,365 @@ exports.createBackground = function(req, res) {
   res.send({message: 'done'});
 };
 
+/*
+* Get background rand style
+* Input: data include x and y
+* Output: data with x-axis and y is rand data
+* */
 
+function reverseData(data) {
+  var temp = {
+    x: [],
+    y: []
+  };
+  var dataLength = data.x.length;
+  for(var i = 0; i<dataLength; ++i) {
+    temp.x.push(data.x[dataLength-1-i]);
+    temp.y.push(data.y[dataLength-1-i]);
+  };
+  console.log('this is temp reverts');
+  return temp;
+}
+
+function isReversedData(data) {
+  if(data.x[0] > data.x[1]) return true;
+  return false;
+}
+
+function sumAverage(data_list) {
+  var temp = 0;
+  for(var i = 0; i<data_list.length; ++i) {
+    temp += parseFloat(data_list[i].y);
+  }
+  /*console.log('this is data list');
+  console.log(data_list);
+  console.log('this is temp');
+  console.log(temp);
+  console.log(Math.round(temp/data_list.length));*/
+  return Math.round(temp/data_list.length);
+}
+function timeAverage(data_list) {
+  var temp = 1;
+  for(var i = 0; i<data_list.length; ++i) {
+    temp *= parseFloat(data_list[i].y);
+  }
+  return Math.round(Math.pow(temp, 1/data_list.length));
+}
+function calAverageY(data_list, type) {
+  if(type == 'sum') {
+    return sumAverage(data_list);
+  } else if (type == 'time') {
+    return timeAverage(data_list);
+  }
+}
+function calFinalBorderPoint(ori, bp_length, aver_type) {
+  var temp = {
+    x: ori.x[ori.x.length -1],
+    y: 0
+  };
+  var list_points = [];
+  for(var i = ori.x.length-bp_length; i<ori.x.length; ++i) {
+    list_points.push({x: ori.x[i], y: ori.y[i]});
+  }
+  console.log('this is the final');
+  console.log(list_points);
+  temp.y = calAverageY(list_points, aver_type);
+  return temp;
+}
+function calBorderPoint(ori, bp_length, index, direction, aver_type) {
+  if(direction != 'right') {
+    return null;
+  }
+  var temp = {
+    x: ori.x[index],
+    y: 0
+  };
+  var list_points = [];
+  var end_value = index + bp_length -1 > ori.x.length? ori.x.length: index + bp_length-1;
+  for(var i = index; i<end_value; ++i) {
+    list_points.push({x: ori.x[i], y: ori.y[i]});
+  }
+  if(index>860) {
+    console.log('this is 880 list');
+    console.log(list_points);
+  }
+  temp.y = calAverageY(list_points, aver_type);
+  return temp;
+}
+
+function getBorderPoints(ori, period_length, bp_length, aver_type) {
+  /*Border point structure
+  * {
+  *   x: 3,
+  *   y: 4
+  * }
+  * */
+  var period_count = 0;
+  var borderPoints = [];
+  console.log('hi this is border point cal vars');
+  console.log(period_length);
+  console.log(bp_length);
+  console.log(aver_type);
+  for(var i = 0; i<ori.x.length; ++i) {
+    if(period_count * period_length > ori.x.length - period_length+1) {
+      console.log('this is final');
+      console.log(period_count*period_length);
+      console.log(ori.x.length - period_length);
+      borderPoints.push(calFinalBorderPoint(ori, bp_length, aver_type));
+      break;
+    }
+    if(i == period_count * period_length) {
+      console.log('this is running');
+      console.log(i);
+      borderPoints.push(calBorderPoint(ori, bp_length, i, 'right', aver_type));
+      period_count++;
+    }
+  }
+  return borderPoints;
+}
+
+function getStraightLineData(x, start, end) {
+  if(!x) {
+    console.log('this is ab x');
+    console.log(start);
+    console.log(end);
+    console.log(x);
+    console.log(getCalY(start, end, x));
+  }
+  return getCalY(start, end, x);
+}
+// Create straight-lines functions from ori data
+function getStraightLinesData(ori, period_length, bp_length, aver_type) {
+  var border_points = getBorderPoints(ori, period_length, bp_length, aver_type);
+  console.log('hello this is border poinsts');
+  console.log(border_points);
+
+  var bp_number = border_points.length;
+  var count_running_bp = 0;
+  var straightLinesData = {
+    x: ori.x,
+    y: []
+  };
+
+  var count = 0;
+  for(var i =0; i<ori.x.length; ++i) {
+    // if out of border then break
+    if(count_running_bp+1 == bp_number) {
+      break;
+    }
+
+    // create data for each straight line in start-end bp range.
+    if(border_points[count_running_bp].x <= ori.x[i] && ori.x[i] <= border_points[count_running_bp+1].x) {
+      count++;
+      console.log('how many times u come here: '+ count);
+      console.log(bp_number);
+      console.log(count_running_bp);
+      //console.log(i);
+      straightLinesData.y.push(getStraightLineData(ori.x[i], border_points[count_running_bp], border_points[count_running_bp+1]));
+      if(i>600) {
+        console.log('this is check stara ');
+        console.log(border_points[count_running_bp]);
+        console.log(straightLinesData.y[i]);
+      }
+    }
+    // increase border point when reach end point
+    if(border_points[count_running_bp+1].x <= ori.x[i]) {
+      count_running_bp++;
+    }
+  }
+  //console.log('this is straight lines data');
+  //console.log(straightLinesData);
+  /*for(var i = straightLinesData.x.length-1; i>straightLinesData.x.length - 40; --i) {
+    console.log('recent 40 poisnt');
+    console.log(straightLinesData.x[i]);
+    console.log(straightLinesData.y[i]);
+  }*/
+  return straightLinesData;
+}
+
+function getRandDataByStraight(ori, sl_data) {
+  var randData = {
+    x: [],
+    y: []
+  };
+  for(var i = 0; i<ori.x.length; ++i) {
+    randData.x.push(ori.x[i]);
+    if(!sl_data.y[i]) {
+      console.log('this is sl data');
+      console.log(i);
+      console.log(sl_data.y[i]);
+    }
+    var temp = ori.y[i];
+    if(typeof temp == 'string') {
+      temp = parseFloat(temp);
+    } else {
+      console.log(temp);
+    }
+    randData.y.push(parseFloat(ori.y[i]) - sl_data.y[i]);
+  }
+  return randData;
+}
+
+function getRandData(ori_data, break_num, bp_length, aver_type) {
+  if(isReversedData(ori_data)) {
+    ori_data = reverseData(ori_data);
+  }
+  /*CODE PLAN
+  * 1. Get number of periods
+  * 2. Create straight-lines functions
+  *  a. Get border points
+  *  b. Run through border points to create straight-lines data
+  *   i. Create each line using start and end point
+  * 3. Run through data dn straight-lines data to get rand data
+  * */
+  var period_length = Math.ceil(ori_data.x.length/break_num);
+  var straight_lines_data = getStraightLinesData(ori_data, period_length, bp_length, aver_type);
+  /*
+  console.log('this is final oridata and sl data');
+  for (var i = straight_lines_data.x.length-1; i>straight_lines_data.x.length-300; --i) {
+    console.log('thelsdkjfa');
+    console.log(straight_lines_data.x[i]);
+    console.log(straight_lines_data.y[i]);
+  }*/
+  var randData = getRandDataByStraight(ori_data, straight_lines_data);
+
+  return randData;
+}
+
+exports.getRandBackground = function(req, res) {
+  var body = req.body;
+  console.log('this is rand background');
+  var count = 0;
+  var temp = [];
+  var data = {
+    x: [],
+    y: []
+  };
+
+  var lr = new LineByLineReader('assets/' + body.file_in);
+  lr.on('error', function (err) {
+    // 'err' contains error object
+    console.log('err on read file');
+    console.log(err);
+  });
+
+  lr.on('line', function (line) {
+    // 'line' contains the current line without the trailing newline character.
+    //console.log('file line');
+    if (count >= 0) {
+      temp = line.split("\t");
+      //console.log(temp);
+      if(typeof temp[0] == 'string')
+        data.x.push(parseFloat(temp[0]));
+      else
+        data.x.push(temp[0]);
+
+      if(typeof temp[1] == 'string')
+        data.y.push(parseFloat(temp[1]));
+      else
+        data.y.push(temp[1]);
+    }
+    count++;
+  });
+
+  lr.on('end', function () {
+    data = getRandData(data, body.break_num, body.bp_length, body.average_type);
+
+    writeOneToFile(data, body.file_out);
+
+    res.send({message: 'done'});
+  })
+};
+
+
+/*
+* Add random to background data
+* */
+
+exports.addRandomToData = function(req, res) {
+  var body = req.body;
+  var count = 0;
+  var temp = [];
+  var mainData = {
+    x: [],
+    y: []
+  };
+  var randData = [];
+
+  var lr = new LineByLineReader('assets/' + body.file_in);
+  lr.on('error', function (err) {
+    // 'err' contains error object
+    console.log('err on read file');
+    console.log(err);
+  });
+
+  lr.on('line', function (line) {
+    // 'line' contains the current line without the trailing newline character.
+    //console.log('file line');
+    if (count >= 0) {
+      temp = line.split("\t");
+      //console.log(temp);
+      if(typeof temp[0] == 'string')
+        mainData.x.push(parseFloat(temp[0]));
+      else
+        mainData.x.push(temp[0]);
+
+      if(typeof temp[1] == 'string')
+        mainData.y.push(parseFloat(temp[1]));
+      else
+        mainData.y.push(temp[1]);
+    }
+    count++;
+  });
+
+  lr.on('end', function () {
+    count = 0;
+    var nlr = new LineByLineReader('assets/'+body.rand_file_in);
+    nlr.on('error', function (err) {
+      // 'err' contains error object
+      console.log('err on read file');
+      console.log(err);
+    });
+    nlr.on('line', function (line) {
+      // 'line' contains the current line without the trailing newline character.
+      //console.log('file line');
+      if (count >= 0) {
+        temp = line.split("\t");
+        //console.log(temp);
+        if(typeof temp[0] == 'string')
+          randData.push(parseFloat(temp[0]));
+        else
+          randData.push(temp[0]);
+      }
+      count++;
+    });
+
+    nlr.on('end', function() {
+      console.log('this is rand data');
+      var returnData = addRandToData(mainData, randData, body.scale, body.precision);
+
+      writeOneToFile(returnData, body.file_out);
+
+      res.send({message: 'done'});
+    });
+
+  })
+};
+
+function addRandToData(main, rand, scale, precision) {
+  var randLength = rand.length;
+  if(randLength<main.x.length) {
+    for(var i = randLength; i<=main.x.length; ++i) {
+      var selectIndex = Math.floor(Math.random() * (randLength));
+      rand.push(rand[selectIndex]);
+    }
+  }
+  for (var i = 0; i<main.x.length; ++i) {
+    main.y[i] += round(rand[i]*scale, precision);
+    main.y[i] = Math.abs(main.y[i]);
+  }
+  return main;
+}
 /**
  * Show the current article
  */

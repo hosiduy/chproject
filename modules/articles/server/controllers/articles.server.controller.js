@@ -66,7 +66,8 @@ function getY0(y, dentaY) {
   return (parseInt(y) + dentaY);
 }
 
-function getRealX(data, limit) {
+function getRealXO(data, limit) {
+  console.log('this is limit' + limit);
   for (var t = 0; t < data.x.length; ++t) {
     if (data.x[t] > limit) {
       return {x: data.x[t - 1], t: t - 1, ys: getYbyT(data, t - 1)};
@@ -84,14 +85,21 @@ function getT(data, x) {
 }
 
 function getRealX(data, x) {
+  console.log('this is limit' + x);
+
   for(var i = 0; i<data.x.length; ++i) {
-    if(i+1 < data.x.length) {
+    if(i+1 < data.x.length-1) {
       if(data.x[i] <= x && data.x[i+1] >= x) {
+        console.log('hello iam hrer');
+        console.log(data.x[i]);
+        console.log(data.x[i+1]);
         if(data.x[i] - x < data.x[i+1] - x) {
           return data.x[i];
         } else {
           return data.x[i+1];
         }
+      } else if(data.x[i] >= x) {
+        return data.x[i];
       }
     }
   }
@@ -417,11 +425,23 @@ function getParaVars(peak) {
 function calYFinal(minX, maxX, leftVars, midVars, rightVars, x, x0Left, x0, x0Right) {
   if(x<=x0Left) {
     // use left vars
+    /*console.log('left');
+    console.log('this is x left ' + x);
+    console.log(x-minX);
+
+    console.log(Math.pow(leftVars.slope, x - minX));*/
     return Math.pow(leftVars.slope, x - minX);
   } else if(x<x0Right) {
+   /* console.log('small right');
+    console.log('this is x sr ' + x);
+    console.log(midVars.a*Math.pow(x, 2) + midVars.b*x + midVars.c);*/
     return midVars.a*Math.pow(x, 2) + midVars.b*x + midVars.c;
   } else if(x >= x0Right) {
+    /*console.log('after right');
+    console.log('this is x ar ' + x);
+    console.log(maxX - x);
     // use right vars
+    console.log(Math.pow(rightVars.slope, maxX - x));*/
     return Math.pow(rightVars.slope, maxX - x);
   }
 }
@@ -452,8 +472,8 @@ function createPeak2(data, peak) {
   for(var i = 0; i<data.x.length; ++i) {
     if (data.x[i] > peak.minX && data.x[i] < peak.maxX) {
 
-      console.log('this is y i');
-      console.log(data.y[i]);
+      /*console.log('this is y i');
+      console.log(data.y[i]);*/
       data.y[i] = parseInt(data.y[i]) +
         Math.round(calYFinal(peak.minX, peak.maxX, fnLeftVars, fnMidVars, fnRightVars, data.x[i], peak.left.x0, peak.x0, peak.right.x0));
     }

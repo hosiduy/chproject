@@ -11,24 +11,8 @@ var path = require('path'),
 var jsonfile = require('jsonfile');
 var LineByLineReader = require('line-by-line');
 var writeFile = require('write');
+var async = require('async');
 
-/**
- * Create a article
- */
-exports.create = function (req, res) {
-  var article = new Article(req.body);
-  article.user = req.user;
-
-  article.save(function (err) {
-    if (err) {
-      return res.status(400).send({
-        message: errorHandler.getErrorMessage(err)
-      });
-    } else {
-      res.json(article);
-    }
-  });
-};
 
 function getRandomArbitrary(min, max) {
   return Math.random() * (max - min) + min;
@@ -851,7 +835,15 @@ function getRandDataByStraight(ori, sl_data) {
   return randData;
 }
 
-function getRandData(ori_data, break_num, bp_length, aver_type) {
+function scaleDownData(randData, max_y, scale_down_ratio) {
+  for(var i = 0; i<randData.x.length; ++i) {
+    if(Math.abs(randData.y[i]) >= max_y) {
+      randData.y[i] = Math.round(randData.y[i]/scale_down_ratio);
+    }
+  }
+  return randData;
+}
+function getRandData(ori_data, break_num, bp_length, aver_type, body) {
   if(isReversedData(ori_data)) {
     ori_data = reverseData(ori_data);
   }
@@ -874,7 +866,9 @@ function getRandData(ori_data, break_num, bp_length, aver_type) {
   }*/
   var randData = getRandDataByStraight(ori_data, straight_lines_data);
 
-  return randData;
+  var scaledData = scaleDownData(randData, body.max_y, body.scale_down_ratio);
+
+  return scaledData;
 }
 
 exports.getRandBackground = function(req, res) {
@@ -914,7 +908,7 @@ exports.getRandBackground = function(req, res) {
   });
 
   lr.on('end', function () {
-    data = getRandData(data, body.break_num, body.bp_length, body.average_type);
+    data = getRandData(data, body.break_num, body.bp_length, body.average_type, body);
 
     writeOneToFile(data, body.file_out);
 
@@ -1011,85 +1005,125 @@ function addRandToData(main, rand, scale, precision) {
   }
   return main;
 }
-/**
- * Show the current article
- */
-exports.read = function (req, res) {
-  res.json(req.article);
-};
 
-/**
- * Update a article
- */
-exports.update = function (req, res) {
-  var article = req.article;
-
-  article.title = req.body.title;
-  article.content = req.body.content;
-
-  article.save(function (err) {
-    if (err) {
-      return res.status(400).send({
-        message: errorHandler.getErrorMessage(err)
-      });
-    } else {
-      res.json(article);
-    }
-  });
-};
-
-/**
- * Delete an article
- */
-exports.delete = function (req, res) {
-  var article = req.article;
-
-  article.remove(function (err) {
-    if (err) {
-      return res.status(400).send({
-        message: errorHandler.getErrorMessage(err)
-      });
-    } else {
-      res.json(article);
-    }
-  });
-};
-
-/**
- * List of Articles
- */
-exports.list = function (req, res) {
-  Article.find().sort('-created').populate('user', 'displayName').exec(function (err, articles) {
-    if (err) {
-      return res.status(400).send({
-        message: errorHandler.getErrorMessage(err)
-      });
-    } else {
-      res.json(articles);
-    }
-  });
-};
-
-/**
- * Article middleware
- */
-exports.articleByID = function (req, res, next, id) {
-
-  if (!mongoose.Types.ObjectId.isValid(id)) {
-    return res.status(400).send({
-      message: 'Article is invalid'
+function readFile(fileName, cb) {
+    var count = 0;
+    var temp = [];
+    var mainData = {
+        x: [],
+        y: []
+    };
+    var lr = new LineByLineReader('assets/' + fileName);
+    lr.on('error', function (err) {
+        // 'err' contains error object
+        console.log('err on read file');
+        console.log(err);
+        cb(err, null);
     });
+
+    lr.on('line', function (line) {
+        if (count >= 0) {
+            temp = line.split("\t");
+            //console.log(temp);
+            if(typeof temp[0] == 'string')
+                mainData.x.push(parseFloat(temp[0]));
+            else
+                mainData.x.push(temp[0]);
+
+            if(typeof temp[1] == 'string')
+                mainData.y.push(parseFloat(temp[1]));
+            else
+                mainData.y.push(temp[1]);
+        }
+        count++;
+    });
+
+    lr.on('end', function () {
+      cb(null, mainData);
+    })
+}
+
+exports.downPeak = function (req, res) {
+    var body = req.body;
+
+    readFile(body.file_in, function (err, data) {
+        if(err) {
+          return res.send("Error on read file");
+        }
+        var results = scaleDownData(data, body.max_y, body.scale_down_ratio);
+
+        writeOneToFile(results, body.file_out);
+
+        res.send({message: 'done'});
+    })
+};
+
+function mergeRandData(data1, data2, ratio1, ratio2, cb) {
+  var outList = null;
+  var inList = null;
+  var outRatio = 0;
+  var inRatio = 0;
+
+  if(data1.x.length > data2.x.length) {
+    outList = data1;
+    inList = data2;
+    outRatio = ratio1;
+    inRatio = ratio2;
+  } else {
+    outList = data2;
+    inList = data1;
+    outRatio = ratio2;
+    inRatio = ratio1;
   }
 
-  Article.findById(id).populate('user', 'displayName').exec(function (err, article) {
-    if (err) {
-      return next(err);
-    } else if (!article) {
-      return res.status(404).send({
-        message: 'No article with that identifier has been found'
-      });
+  var results = {
+      x: [],
+      y: []
+  };
+
+    var randLength = inList.x.length;
+    if(randLength<outList.x.length) {
+        for(var i = randLength; i<=outList.x.length; ++i) {
+            // var selectIndex = Math.floor(Math.random() * (randLength));
+            // inList.push(inList[selectIndex]);
+            var selectIndex = (outList.x.length - i)%randLength;
+            inList.x.push(inList.x[selectIndex]);
+            inList.y.push(inList.y[selectIndex]);
+        }
     }
-    req.article = article;
-    next();
-  });
+
+  for(var i = 0; i<outList.x.length; ++i) {
+      results.x[i] = outList.x[i];
+    results.y[i] = round(outList.y[i]*outRatio, 0) + round(inList.y[i]*inRatio, 0);
+  }
+  cb(null, results);
+}
+
+exports.createRandByMerge = function (req, res) {
+  var body = req.body;
+  var files = body.files;
+
+  async.parallel({
+      data1: function (cb) {
+          readFile(files[0].file_in, function (err, data1) {
+              cb(err, data1);
+          })
+      },
+      data2: function (cb) {
+          readFile(files[1].file_in, function (err, data2) {
+              cb(err, data2);
+          })
+      }
+  }, function (err, results) {
+    if(err) return res.send("Error on read files");
+
+    mergeRandData(results.data1, results.data2, files[0].scale_ratio, files[1].scale_ratio, function (err, data) {
+        if(err) return res.send(err);
+
+        writeOneToFile(data, body.file_out);
+
+        res.send({message: 'done'});
+    })
+
+  })
 };

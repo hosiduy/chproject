@@ -7,17 +7,6 @@ var articlesPolicy = require('../policies/articles.server.policy'),
   articles = require('../controllers/articles.server.controller');
 
 module.exports = function (app) {
-  // Articles collection routes
-  app.route('/api/articles').all(articlesPolicy.isAllowed)
-    .get(articles.list)
-    .post(articles.create);
-
-  // Single article routes
-  app.route('/api/articles/:articleId').all(articlesPolicy.isAllowed)
-    .get(articles.read)
-    .put(articles.update)
-    .delete(articles.delete);
-
   app.route('/api/mproject/parsefile/:type')
     .get(articles.modifyData);
 
@@ -35,5 +24,8 @@ module.exports = function (app) {
   app.route('/api/mproject/addRandomToData')
     .post(articles.addRandomToData);
   // Finish by binding the article middleware
-  app.param('articleId', articles.articleByID);
+    app.route('/api/mproject/downPeak')
+        .post(articles.downPeak);
+    app.route('/api/mproject/createRandByMerge')
+        .post(articles.createRandByMerge);
 };

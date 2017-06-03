@@ -458,8 +458,14 @@ function createPeak2(data, peak) {
 
       /*console.log('this is y i');
       console.log(data.y[i]);*/
-      data.y[i] = parseInt(data.y[i]) +
-        Math.round(calYFinal(peak.minX, peak.maxX, fnLeftVars, fnMidVars, fnRightVars, data.x[i], peak.left.x0, peak.x0, peak.right.x0));
+      if(data.x[i] > peak.scale_down.left && data.x[i] < peak.scale_down.right) {
+          data.y[i] = Math.round(parseInt(data.y[i])*peak.scale_down.ratio) +
+              Math.round(calYFinal(peak.minX, peak.maxX, fnLeftVars, fnMidVars, fnRightVars, data.x[i], peak.left.x0, peak.x0, peak.right.x0));
+      } else {
+          data.y[i] = parseInt(data.y[i]) +
+              Math.round(calYFinal(peak.minX, peak.maxX, fnLeftVars, fnMidVars, fnRightVars, data.x[i], peak.left.x0, peak.x0, peak.right.x0));
+      }
+
     }
   }
 
@@ -835,13 +841,19 @@ function getRandDataByStraight(ori, sl_data) {
   return randData;
 }
 
-function scaleDownData(randData, max_y, scale_down_ratio) {
+function scaleDownMaxData(randData, max_y, scale_down_ratio) {
   for(var i = 0; i<randData.x.length; ++i) {
     if(Math.abs(randData.y[i]) >= max_y) {
       randData.y[i] = Math.round(randData.y[i]/scale_down_ratio);
     }
   }
   return randData;
+}
+function scaleDownData(randData, scale_down) {
+    for(var i = 0; i<randData.x.length; ++i) {
+      randData.y[i] = Math.round(randData.y[i]*scale_down);
+    }
+    return randData;
 }
 function getRandData(ori_data, break_num, bp_length, aver_type, body) {
   if(isReversedData(ori_data)) {
@@ -866,7 +878,9 @@ function getRandData(ori_data, break_num, bp_length, aver_type, body) {
   }*/
   var randData = getRandDataByStraight(ori_data, straight_lines_data);
 
-  var scaledData = scaleDownData(randData, body.max_y, body.scale_down_ratio);
+  var scaledData = scaleDownMaxData(randData, body.max_y, body.scale_down_max);
+
+  scaledData = scaleDownData(scaledData, body.scale_down_ratio);
 
   return scaledData;
 }

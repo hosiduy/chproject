@@ -1064,7 +1064,7 @@ exports.downPeak = function (req, res) {
         if(err) {
           return res.send("Error on read file");
         }
-        var results = scaleDownData(data, body.max_y, body.scale_down_ratio);
+        var results = scaleDownMaxData(data, body.max_y, body.scale_down_ratio);
 
         writeOneToFile(results, body.file_out);
 
